@@ -4,7 +4,11 @@ const User = use("App/Models/User")
 
 class AuthController {
   async redirectToProvider({ ally, params }) {
-    await ally.driver(params.provider).redirect()
+    await ally
+      .driver(params.provider)
+      .stateless()
+      .scope(["birthday", "repos"])
+      .redirect()
   }
 
   async handleProviderCallback({ params, ally, auth, response }) {
@@ -19,8 +23,8 @@ class AuthController {
         })
         .first()
       if (!(authUser === null)) {
-        await auth.loginViaId(authUser.id)
-        return response.redirect("/")
+        await auth.generate(authUser)
+        return response.json(authUser)
       }
 
       const user = new User()
@@ -30,11 +34,15 @@ class AuthController {
       user.provider_id = userData.getId()
       user.avatar = userData.getAvatar()
       user.provider = provider
-      user.token = userData.getAccessToken()
+      await user.tokens().create({
+        token: userData.getAccessToken(),
+        user_id: user.id,
+        type: "bearer"
+      })
       await user.save()
 
-      await auth.loginViaId(user.id)
-      return response.redirect("/")
+      await auth.generate(user)
+      return response.json("usuario criado" + user)
     } catch (e) {
       console.log(e)
       response.redirect("/auth/" + provider)
