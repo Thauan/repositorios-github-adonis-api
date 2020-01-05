@@ -7,7 +7,7 @@ class AuthController {
     await ally
       .driver(params.provider)
       .stateless()
-      .scope(["birthday", "repos"])
+      // .scope(["birthday", "repos"])
       .redirect()
   }
 
@@ -21,9 +21,15 @@ class AuthController {
           provider: provider,
           provider_id: userData.getId()
         })
+        .with("tokens")
         .first()
       if (!(authUser === null)) {
         await auth.generate(authUser)
+
+        await authUser
+          .tokens()
+          .update({ token: userData.getAccessToken(), updated_at: Date.now() })
+
         return response.json(authUser)
       }
 
@@ -51,7 +57,7 @@ class AuthController {
 
   async logout({ auth, response }) {
     await auth.logout()
-    response.redirect("/")
+    response.json("deslogado com sucesso")
   }
 }
 module.exports = AuthController
