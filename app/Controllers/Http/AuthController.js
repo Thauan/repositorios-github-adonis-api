@@ -23,14 +23,16 @@ class AuthController {
         })
         .with("tokens")
         .first()
+
       if (!(authUser === null)) {
-        await auth.generate(authUser)
+        const accessToken = auth.generate(authUser)
 
-        await authUser
-          .tokens()
-          .update({ token: userData.getAccessToken(), updated_at: Date.now() })
+        await authUser.tokens().update({
+          token: userData.getAccessToken(),
+          updated_at: Date.now()
+        })
 
-        return response.json(authUser)
+        return response.json({ user: authUser, token: accessToken })
       }
 
       const user = new User()
@@ -47,8 +49,11 @@ class AuthController {
       })
       await user.save()
 
-      await auth.generate(user)
-      return response.json("usuario criado" + user)
+      // await auth.generate(user)
+
+      const accessToken = await auth.generate(user)
+
+      return response.json({ user: user, token: accessToken })
     } catch (e) {
       console.log(e)
       response.redirect("/auth/" + provider)
